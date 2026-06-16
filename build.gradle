@@ -1,0 +1,148 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '1.0.21'
+}
+
+// MOD_VERSION env var is set by the release CI from gradle.properties at
+// publish time, falling back to the gradle.properties value for local builds.
+version = providers.environmentVariable("MOD_VERSION").getOrElse(mod_version)
+group = mod_group_id
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    // LuckPerms API artifacts.
+    maven { url = 'https://repo.lucko.me/' }
+}
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        configureEach {
+            systemProperty('forge.logging.markers', 'REGISTRIES')
+            systemProperty('forge.logging.console.level', 'debug')
+        }
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+sourceSets.main.resources.srcDir 'src/generated/resources'
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    // LuckPerms API. Provided at runtime by LuckPerms-NeoForge on the server.
+    // We compile against it but never bundle it in our jar; the LP mirror is
+    // a no-op when LP isn't installed.
+    compileOnly "net.luckperms:api:${luckperms_version}"
+
+    // gson for the HTTP backend (smaller jar than Jackson), shaded into the mod jar.
+    jarJar(implementation('com.google.code.gson:gson')) {
+        version {
+            strictly '[2.10, 3.0)'
+            prefer '2.11.0'
+        }
+    }
+}
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into "build/generated/sources/modMetadata"
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            groupId = mod_group_id
+            artifactId = mod_id
+            version = project.version
+            from components.java
+        }
+    }
+    repositories {
+        // Local file repo so a developer can `./gradlew publish` without creds.
+        maven {
+            name = "localFile"
+            url = "file://${project.projectDir}/repo"
+        }
+
+        // Sajmon's Maven (Reposilite). Credentials come from MAVEN_USERNAME and
+        // MAVEN_TOKEN env vars, set by the GitHub Actions release workflow.
+        // Skipped silently for local builds where the env vars aren't set.
+        maven {
+            name = "sajmon"
+            url = "https://maven.sajmon.gg/releases"
+            credentials {
+                username = providers.environmentVariable("MAVEN_USERNAME").orNull
+                password = providers.environmentVariable("MAVEN_TOKEN").orNull
+            }
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+}
+
+// Don't publish Gradle module metadata; downstream mod devs can't use it.
+tasks.withType(GenerateModuleMetadata).configureEach {
+    enabled = false
+}

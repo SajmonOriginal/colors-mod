@@ -1,0 +1,36 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+
+[[mods]]
+    modId = "${mod_id}"
+    version = "${mod_version}"
+    displayName = "${mod_name}"
+    authors = "${mod_authors}"
+    description = '''${mod_description}'''
+
+[[dependencies.${mod_id}]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "${neo_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.${mod_id}]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+# LuckPerms is OPTIONAL. When present the mod mirrors color_<name> groups so
+# downstream chat formatters (styled-chat, TabTPS) keep working; when absent
+# the HTTP backend is still the source of truth and scoreboard teams + name
+# format events still render the colour. Loading order is BEFORE so the LP
+# API is up by the time the mod's ctor resolves it.
+[[dependencies.${mod_id}]]
+    modId = "luckperms"
+    type = "optional"
+    versionRange = "[5.4,)"
+    ordering = "BEFORE"
+    side = "SERVER"
