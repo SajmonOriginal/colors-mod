@@ -1,0 +1,8 @@
+{
+  "colormod.usage": "Usage: /color <name>",
+  "colormod.set": "Your name colour is now %s.",
+  "colormod.cleared": "Your name colour has been cleared.",
+  "colormod.error.unknown_color": "Unknown colour: %s",
+  "colormod.error.no_luckperms": "LuckPerms is not loaded - colours are unavailable.",
+  "colormod.error.generic": "Failed to update your colour. Try again later."
+}

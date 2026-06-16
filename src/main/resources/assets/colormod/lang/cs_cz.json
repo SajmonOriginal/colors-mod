@@ -1,0 +1,8 @@
+{
+  "colormod.usage": "Použití: /color <jméno>",
+  "colormod.set": "Tvoje barva jména je teď %s.",
+  "colormod.cleared": "Barva tvého jména byla odstraněna.",
+  "colormod.error.unknown_color": "Neznámá barva: %s",
+  "colormod.error.no_luckperms": "LuckPerms není načtený - barvy nejsou dostupné.",
+  "colormod.error.generic": "Změna barvy se nezdařila. Zkus to znovu později."
+}
